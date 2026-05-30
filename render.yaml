@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: chat-restaurant-recommender-api
+    runtime: node
+    plan: free
+    buildCommand: npm install --include=dev && npm run build --workspace server
+    startCommand: npm run start --workspace server
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_PATH
+        value: /opt/render/project/src/server/data/app.db
+      - key: AI_PROVIDER
+        value: auto
+      - key: JWT_SECRET
+        generateValue: true
+    disk:
+      name: sqlite-data
+      mountPath: /opt/render/project/src/server/data
+      sizeGB: 1
