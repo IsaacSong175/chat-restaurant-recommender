@@ -12,7 +12,7 @@ import type { FeedbackType } from "./types.js";
 initDb();
 
 const app = express();
-app.use(cors({ origin: process.env.CLIENT_ORIGIN ?? true }));
+app.use(cors({ origin: config.clientOrigin ?? true }));
 app.use(express.json());
 
 const authSchema = z.object({

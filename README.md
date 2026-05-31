@@ -47,13 +47,44 @@ QWEN_BASE_URL=https://dashscope-intl.aliyuncs.com/compatible-mode/v1
 
 ## Deploy Backend On Render
 
-This repo is a workspace monorepo, so deploy the backend from the repository root and use workspace commands.
+Pick one of these two Render setups. Do not mix them.
 
-Use these Render settings:
+### Option A: Root Directory Is `server`
+
+Use this if your Render service has `Root Directory` set to:
+
+```bash
+server
+```
+
+Use these commands:
+
+```bash
+Build Command: npm install --include=dev && npm run build
+Start Command: npm start
+```
+
+Set the SQLite path and disk mount for the `server` directory:
+
+```bash
+DATABASE_PATH=/opt/render/project/src/server/data/app.db
+Disk Mount Path: /opt/render/project/src/server/data
+```
+
+### Option B: Root Directory Is Blank
+
+Use this if your Render service runs from the repository root. In that case, use workspace commands:
 
 ```bash
 Build Command: npm install --include=dev && npm run build --workspace server
 Start Command: npm run start --workspace server
+```
+
+Set the SQLite path and disk mount for the monorepo root:
+
+```bash
+DATABASE_PATH=/opt/render/project/src/server/data/app.db
+Disk Mount Path: /opt/render/project/src/server/data
 ```
 
 Set these environment variables:
@@ -61,18 +92,12 @@ Set these environment variables:
 ```bash
 NODE_VERSION=22
 NODE_ENV=production
-DATABASE_PATH=/opt/render/project/src/server/data/app.db
 CLIENT_ORIGIN=https://your-vercel-app.vercel.app
 JWT_SECRET=replace-with-a-long-random-secret
 AI_PROVIDER=auto
 ```
 
-For SQLite persistence, add a Render disk:
-
-```bash
-Mount Path: /opt/render/project/src/server/data
-Size: 1 GB
-```
+Do not include a trailing slash in `CLIENT_ORIGIN`. Use `https://your-vercel-app.vercel.app`, not `https://your-vercel-app.vercel.app/`.
 
 The important bit is `npm install --include=dev`: the build runs `tsc`, and TypeScript needs the `@types/*` packages during build even though they are dev dependencies.
 

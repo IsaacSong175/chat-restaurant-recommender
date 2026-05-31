@@ -2,8 +2,13 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+function normalizeOrigin(origin: string | undefined) {
+  return origin?.replace(/\/+$/, "");
+}
+
 export const config = {
   port: Number(process.env.PORT ?? 4000),
+  clientOrigin: normalizeOrigin(process.env.CLIENT_ORIGIN),
   databasePath: process.env.DATABASE_PATH ?? "./data/app.db",
   jwtSecret: process.env.JWT_SECRET ?? "dev-secret-change-before-deploying",
   aiProvider: process.env.AI_PROVIDER ?? "auto",
