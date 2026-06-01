@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  passwordHash String
+  createdAt DateTime @default(now())
+
+  recommendationSessions RecommendationSession[]
+  feedback               Feedback[]
+}
+
+model Restaurant {
+  id            Int      @id @default(autoincrement())
+  name          String   @unique
+  cuisine       String
+  priceLevel    Int
+  distanceLevel Int
+  area          String
+  tags          String[]
+  notes         String
+
+  feedback Feedback[]
+}
+
+model RecommendationSession {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  inputJson  Json
+  resultJson Json
+  createdAt  DateTime @default(now())
+
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feedback Feedback[]
+
+  @@index([userId, createdAt])
+}
+
+model Feedback {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  restaurantId  Int
+  sessionId     Int?
+  feedbackType  String
+  cuisine       String
+  priceLevel    Int
+  distanceLevel Int
+  createdAt     DateTime @default(now())
+
+  user       User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurant Restaurant             @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  session    RecommendationSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([restaurantId])
+}

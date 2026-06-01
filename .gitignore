@@ -34,6 +34,10 @@ pnpm-debug.log*
 coverage/
 .nyc_output/
 
+# Local planning notes
+implementation.md
+implementation_details.md
+
 # Deployment/tool caches
 .vercel/
 .render/
