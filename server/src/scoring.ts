@@ -1,4 +1,5 @@
-import { db, listRestaurants } from "./db.js";
+import { listRestaurants } from "./db.js";
+import { prisma } from "./prisma.js";
 import type {
   Budget,
   DistancePreference,
@@ -66,18 +67,22 @@ export function enrichInput(input: RecommendationInput): RecommendationInput {
   };
 }
 
-export function getRecommendations(userId: number, rawInput: RecommendationInput): Omit<Recommendation, "explanation">[] {
+export async function getRecommendations(
+  userId: number,
+  rawInput: RecommendationInput
+): Promise<Omit<Recommendation, "explanation">[]> {
   const input = enrichInput(rawInput);
-  const restaurants = listRestaurants();
-  const feedbackRows = db
-    .prepare("SELECT feedback_type, restaurant_id, cuisine, price_level, distance_level FROM feedback WHERE user_id = ?")
-    .all(userId) as Array<{
-    feedback_type: string;
-    restaurant_id: number;
-    cuisine: string;
-    price_level: number;
-    distance_level: number;
-  }>;
+  const restaurants = await listRestaurants();
+  const feedbackRows = await prisma.feedback.findMany({
+    where: { userId },
+    select: {
+      feedbackType: true,
+      restaurantId: true,
+      cuisine: true,
+      priceLevel: true,
+      distanceLevel: true
+    }
+  });
 
   const scored = restaurants
     .map((restaurant): ScoredRestaurant => {
@@ -138,11 +143,11 @@ export function getRecommendations(userId: number, rawInput: RecommendationInput
       }
 
       for (const feedback of feedbackRows) {
-        if (feedback.feedback_type === "ate_this" && normalizeCuisine(feedback.cuisine) === cuisine) score += 2;
-        if (feedback.feedback_type === "not_interested" && feedback.restaurant_id === restaurant.id) score -= 2;
-        if (feedback.feedback_type === "too_expensive" && feedback.price_level === restaurant.priceLevel) score -= 2;
-        if (feedback.feedback_type === "too_far" && feedback.distance_level === restaurant.distanceLevel) score -= 2;
-        if (feedback.feedback_type === "dont_like_cuisine" && normalizeCuisine(feedback.cuisine) === cuisine) score -= 3;
+        if (feedback.feedbackType === "ate_this" && normalizeCuisine(feedback.cuisine) === cuisine) score += 2;
+        if (feedback.feedbackType === "not_interested" && feedback.restaurantId === restaurant.id) score -= 2;
+        if (feedback.feedbackType === "too_expensive" && feedback.priceLevel === restaurant.priceLevel) score -= 2;
+        if (feedback.feedbackType === "too_far" && feedback.distanceLevel === restaurant.distanceLevel) score -= 2;
+        if (feedback.feedbackType === "dont_like_cuisine" && normalizeCuisine(feedback.cuisine) === cuisine) score -= 3;
       }
 
       return { ...restaurant, score, reasons, penalties };
