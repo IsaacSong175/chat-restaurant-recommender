@@ -34,6 +34,21 @@ function toPrismaJson(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
 
+function countBy<T>(items: T[], getKey: (item: T) => string) {
+  const counts = new Map<string, number>();
+  for (const item of items) {
+    const key = getKey(item);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([key, count]) => ({ cuisine: key, count }))
+    .sort((left, right) => right.count - left.count || left.cuisine.localeCompare(right.cuisine));
+}
+
+function uniqueSorted(values: number[]) {
+  return [...new Set(values)].sort((left, right) => left - right);
+}
+
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
@@ -110,15 +125,69 @@ app.get("/api/history", requireAuth, async (req: AuthRequest, res) => {
   const sessions = await prisma.recommendationSession.findMany({
     where: { userId: req.userId },
     orderBy: { id: "desc" },
-    take: 20
+    take: 20,
+    include: {
+      feedback: {
+        where: { userId: req.userId },
+        orderBy: { createdAt: "desc" },
+        select: {
+          restaurantId: true,
+          feedbackType: true,
+          createdAt: true
+        }
+      }
+    }
   });
   res.json({
     sessions: sessions.map((session) => ({
       id: session.id,
       input: session.inputJson,
       recommendations: session.resultJson,
-      createdAt: session.createdAt
+      createdAt: session.createdAt.toISOString(),
+      feedback: session.feedback.map((feedback) => ({
+        restaurantId: feedback.restaurantId,
+        feedbackType: feedback.feedbackType,
+        createdAt: feedback.createdAt.toISOString()
+      }))
     }))
+  });
+});
+
+app.get("/api/preferences", requireAuth, async (req: AuthRequest, res) => {
+  const feedback = await prisma.feedback.findMany({
+    where: { userId: req.userId },
+    orderBy: { createdAt: "desc" },
+    select: {
+      feedbackType: true,
+      cuisine: true,
+      priceLevel: true,
+      distanceLevel: true,
+      createdAt: true
+    }
+  });
+
+  const positiveFeedback = feedback.filter((item) => item.feedbackType === "ate_this");
+  const avoidedCuisineFeedback = feedback.filter(
+    (item) => item.feedbackType === "dont_like_cuisine" || item.feedbackType === "not_interested"
+  );
+  const expensiveFeedback = feedback.filter((item) => item.feedbackType === "too_expensive");
+  const farFeedback = feedback.filter((item) => item.feedbackType === "too_far");
+
+  res.json({
+    totalFeedbackCount: feedback.length,
+    positiveCount: positiveFeedback.length,
+    negativeCount: feedback.length - positiveFeedback.length,
+    likedCuisines: countBy(positiveFeedback, (item) => item.cuisine),
+    avoidedCuisines: countBy(avoidedCuisineFeedback, (item) => item.cuisine),
+    priceSensitivity: {
+      tooExpensiveCount: expensiveFeedback.length,
+      affectedPriceLevels: uniqueSorted(expensiveFeedback.map((item) => item.priceLevel))
+    },
+    distanceSensitivity: {
+      tooFarCount: farFeedback.length,
+      affectedDistanceLevels: uniqueSorted(farFeedback.map((item) => item.distanceLevel))
+    },
+    lastUpdatedAt: feedback[0]?.createdAt.toISOString() ?? null
   });
 });
 

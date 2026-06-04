@@ -1,4 +1,13 @@
-import type { Budget, DistancePreference, FeedbackType, HealthPreference, Mood, Recommendation } from "./types";
+import type {
+  Budget,
+  DistancePreference,
+  FeedbackType,
+  HealthPreference,
+  HistorySession,
+  LearnedPreferences,
+  Mood,
+  Recommendation
+} from "./types";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
@@ -57,4 +66,12 @@ export function sendFeedback(restaurantId: number, sessionId: number, feedbackTy
     method: "POST",
     body: JSON.stringify({ restaurantId, sessionId, feedbackType })
   });
+}
+
+export function getHistory() {
+  return request<{ sessions: HistorySession[] }>("/api/history");
+}
+
+export function getPreferences() {
+  return request<LearnedPreferences>("/api/preferences");
 }

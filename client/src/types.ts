@@ -26,3 +26,45 @@ export interface Recommendation {
   restaurant: ScoredRestaurant;
   explanation: string;
 }
+
+export interface HistoryFeedback {
+  restaurantId: number;
+  feedbackType: FeedbackType;
+  createdAt: string;
+}
+
+export interface HistorySession {
+  id: number;
+  input: {
+    message?: string;
+    budget?: Budget;
+    distance?: DistancePreference;
+    mood?: Mood;
+    health?: HealthPreference;
+  };
+  recommendations: Recommendation[];
+  createdAt: string;
+  feedback: HistoryFeedback[];
+}
+
+export interface CuisineCount {
+  cuisine: string;
+  count: number;
+}
+
+export interface LearnedPreferences {
+  totalFeedbackCount: number;
+  positiveCount: number;
+  negativeCount: number;
+  likedCuisines: CuisineCount[];
+  avoidedCuisines: CuisineCount[];
+  priceSensitivity: {
+    tooExpensiveCount: number;
+    affectedPriceLevels: number[];
+  };
+  distanceSensitivity: {
+    tooFarCount: number;
+    affectedDistanceLevels: number[];
+  };
+  lastUpdatedAt: string | null;
+}
